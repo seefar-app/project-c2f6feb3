@@ -9,7 +9,7 @@ import {
   Pressable,
   Animated,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, Redirect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,12 +24,13 @@ export default function LoginScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
   
-  const { login, isLoading, authError, clearError } = useAuthStore();
+  const { login, isLoading, authError, clearError, isAuthenticated } = useAuthStore();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [loginSuccess, setLoginSuccess] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -79,9 +80,14 @@ export default function LoginScreen() {
 
     const success = await login(email, password);
     if (success) {
-      router.replace('/(tabs)');
+      setLoginSuccess(true);
     }
   };
+
+  // Redirect after successful login
+  if (loginSuccess || isAuthenticated) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   return (
     <KeyboardAvoidingView 

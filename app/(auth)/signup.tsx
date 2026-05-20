@@ -9,7 +9,7 @@ import {
   Pressable,
   Animated,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, Redirect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -53,7 +53,7 @@ export default function SignupScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
   
-  const { signup, isLoading, authError, clearError } = useAuthStore();
+  const { signup, isLoading, authError, clearError, isAuthenticated } = useAuthStore();
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -61,6 +61,7 @@ export default function SignupScreen() {
   const [selectedRole, setSelectedRole] = useState<User['role']>('buyer');
   const [step, setStep] = useState(1);
   const [errors, setErrors] = useState({ name: '', email: '', password: '' });
+  const [signupSuccess, setSignupSuccess] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -124,9 +125,14 @@ export default function SignupScreen() {
   const handleSignup = async () => {
     const success = await signup(name, email, password, selectedRole);
     if (success) {
-      router.replace('/(tabs)');
+      setSignupSuccess(true);
     }
   };
+
+  // Redirect after successful signup
+  if (signupSuccess || isAuthenticated) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   return (
     <KeyboardAvoidingView 

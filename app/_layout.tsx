@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -17,27 +17,17 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
-  const { isAuthenticated, isLoading, initializeAuth } = useAuthStore();
+  const { isLoading, initializeAuth } = useAuthStore();
   const { fetchProperties } = useStore();
 
   useEffect(() => {
     const init = async () => {
       await initializeAuth();
+      await fetchProperties();
       await SplashScreen.hideAsync();
     };
     init();
   }, []);
-
-  useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated) {
-        fetchProperties();
-        router.replace('/(tabs)');
-      } else {
-        router.replace('/');
-      }
-    }
-  }, [isLoading, isAuthenticated]);
 
   if (isLoading) {
     return (
