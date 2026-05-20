@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import * as Crypto from 'expo-crypto';
+import { supabase } from '@/lib/supabase';
 import { 
   Property, 
   Agent, 
@@ -37,317 +37,75 @@ interface StoreState {
   clearFilters: () => void;
 }
 
-const mockProperties: Property[] = [
-  {
-    id: 'prop-001',
-    title: 'Luxurious Modern Villa',
-    description: 'Stunning 4-bedroom villa with panoramic sea views, private pool, and landscaped gardens. Located in the prestigious Hydra neighborhood.',
-    type: 'villa',
-    price: 85000000,
-    currency: 'DZD',
-    bedrooms: 4,
-    bathrooms: 3,
-    area: 350,
-    address: '12 Rue des Jardins, Hydra',
-    wilaya: 'Alger',
-    commune: 'Hydra',
-    latitude: 36.7538,
-    longitude: 3.0588,
-    images: [
-      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
-      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
-      'https://images.unsplash.com/photo-1560185893-a55cbc8c57e8?w=800',
-    ],
-    amenities: ['Pool', 'Garden', 'Parking', 'Security', 'Air Conditioning'],
-    status: 'available',
-    agentId: 'agent-001',
-    createdAt: new Date('2024-11-01'),
-    updatedAt: new Date('2024-11-15'),
-    isVerified: true,
-    views: 234,
-  },
-  {
-    id: 'prop-002',
-    title: 'Modern Apartment in Oran',
-    description: 'Beautiful 3-bedroom apartment with modern finishes, located in the heart of Oran. Close to shopping centers and public transport.',
-    type: 'apartment',
-    price: 25000000,
-    currency: 'DZD',
-    bedrooms: 3,
-    bathrooms: 2,
-    area: 120,
-    address: '45 Boulevard Front de Mer',
-    wilaya: 'Oran',
-    commune: 'Oran Centre',
-    latitude: 35.6969,
-    longitude: -0.6331,
-    images: [
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
-      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
-    ],
-    amenities: ['Elevator', 'Parking', 'Air Conditioning', 'Balcony'],
-    status: 'available',
-    agentId: 'agent-002',
-    createdAt: new Date('2024-10-20'),
-    updatedAt: new Date('2024-11-10'),
-    isVerified: true,
-    views: 189,
-  },
-  {
-    id: 'prop-003',
-    title: 'Commercial Space - Prime Location',
-    description: 'Prime commercial space in busy shopping area. Ideal for retail, office, or showroom. High foot traffic area.',
-    type: 'commercial',
-    price: 45000000,
-    currency: 'DZD',
-    bedrooms: 0,
-    bathrooms: 2,
-    area: 200,
-    address: '78 Rue Didouche Mourad',
-    wilaya: 'Alger',
-    commune: 'Alger Centre',
-    latitude: 36.7658,
-    longitude: 3.0510,
-    images: [
-      'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800',
-      'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=800',
-    ],
-    amenities: ['Parking', 'Air Conditioning', 'Security', 'Storage'],
-    status: 'available',
-    agentId: 'agent-001',
-    createdAt: new Date('2024-09-15'),
-    updatedAt: new Date('2024-11-05'),
-    isVerified: true,
-    views: 312,
-  },
-  {
-    id: 'prop-004',
-    title: 'Building Land in Tipaza',
-    description: 'Large building plot with beautiful views, perfect for villa construction. All utilities available. Title deed ready.',
-    type: 'land',
-    price: 15000000,
-    currency: 'DZD',
-    bedrooms: 0,
-    bathrooms: 0,
-    area: 500,
-    address: 'Zone Touristique Tipaza',
-    wilaya: 'Tipaza',
-    commune: 'Tipaza',
-    latitude: 36.5928,
-    longitude: 2.4475,
-    images: [
-      'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800',
-    ],
-    amenities: [],
-    status: 'available',
-    agentId: 'agent-002',
-    createdAt: new Date('2024-08-10'),
-    updatedAt: new Date('2024-10-25'),
-    isVerified: false,
-    views: 156,
-  },
-  {
-    id: 'prop-005',
-    title: 'Cozy F3 Apartment',
-    description: 'Well-maintained F3 apartment in quiet residential area. Recently renovated kitchen and bathrooms.',
-    type: 'apartment',
-    price: 18000000,
-    currency: 'DZD',
-    bedrooms: 2,
-    bathrooms: 1,
-    area: 85,
-    address: '23 Cité des Annassers',
-    wilaya: 'Alger',
-    commune: 'Kouba',
-    latitude: 36.7258,
-    longitude: 3.0688,
-    images: [
-      'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800',
-      'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800',
-    ],
-    amenities: ['Parking', 'Balcony', 'Storage'],
-    status: 'available',
-    agentId: 'agent-001',
-    createdAt: new Date('2024-11-05'),
-    updatedAt: new Date('2024-11-12'),
-    isVerified: true,
-    views: 98,
-  },
-  {
-    id: 'prop-006',
-    title: 'Seafront Luxury Villa',
-    description: 'Exceptional seafront property with direct beach access. Features infinity pool, guest house, and private dock.',
-    type: 'villa',
-    price: 150000000,
-    currency: 'DZD',
-    bedrooms: 5,
-    bathrooms: 4,
-    area: 500,
-    address: 'Corniche Ouest',
-    wilaya: 'Oran',
-    commune: 'Aïn El Turck',
-    latitude: 35.7456,
-    longitude: -0.7698,
-    images: [
-      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
-      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
-      'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800',
-    ],
-    amenities: ['Pool', 'Garden', 'Parking', 'Security', 'Air Conditioning', 'Furnished', 'Gym'],
-    status: 'available',
-    agentId: 'agent-002',
-    createdAt: new Date('2024-10-01'),
-    updatedAt: new Date('2024-11-08'),
-    isVerified: true,
-    views: 445,
-  },
-];
+const mapDatabasePropertyToProperty = (dbProperty: any): Property => ({
+  id: dbProperty.id,
+  title: dbProperty.title,
+  description: dbProperty.description,
+  type: dbProperty.type,
+  price: Number(dbProperty.price),
+  currency: dbProperty.currency,
+  bedrooms: dbProperty.bedrooms,
+  bathrooms: dbProperty.bathrooms,
+  area: Number(dbProperty.area),
+  address: dbProperty.address,
+  wilaya: dbProperty.wilaya,
+  commune: dbProperty.commune,
+  latitude: Number(dbProperty.latitude),
+  longitude: Number(dbProperty.longitude),
+  images: dbProperty.images || [],
+  amenities: dbProperty.amenities || [],
+  status: dbProperty.status,
+  agentId: dbProperty.agentId,
+  createdAt: new Date(dbProperty.created_at),
+  updatedAt: new Date(dbProperty.updated_at),
+  isVerified: dbProperty.isVerified,
+  views: dbProperty.views,
+});
 
-const mockAgents: Agent[] = [
-  {
-    id: 'agent-001',
-    userId: 'user-agent-001',
-    user: {
-      id: 'user-agent-001',
-      name: 'Amina Hadj',
-      email: 'amina@darcom.dz',
-      phone: '+213 555 789 012',
-      role: 'agent',
-      profileImage: 'https://randomuser.me/api/portraits/women/44.jpg',
-      bio: 'Passionate about helping families find their perfect home',
-      location: 'Alger',
-      wilaya: 'Alger',
-      createdAt: new Date('2023-01-15'),
-    },
-    license: 'AG-DZ-2023-001',
-    verificationStatus: 'verified',
-    rating: 4.9,
-    reviewCount: 127,
-    totalListings: 45,
-    bio: '10+ years of experience in Algerian real estate market. Specialized in luxury properties and commercial real estate.',
-    specializations: ['Luxury Villas', 'Commercial', 'Investment Properties'],
-    responseTime: 'Usually responds within 1 hour',
-    languages: ['Arabic', 'French', 'English'],
+const mapDatabaseAgentToAgent = (dbAgent: any, user: any): Agent => ({
+  id: dbAgent.id,
+  userId: dbAgent.userId,
+  user: {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    role: user.role,
+    profileImage: user.profileImage,
+    bio: user.bio,
+    location: user.location,
+    wilaya: user.wilaya,
+    createdAt: new Date(user.created_at),
   },
-  {
-    id: 'agent-002',
-    userId: 'user-agent-002',
-    user: {
-      id: 'user-agent-002',
-      name: 'Yacine Boumediene',
-      email: 'yacine@darcom.dz',
-      phone: '+213 555 456 789',
-      role: 'agent',
-      profileImage: 'https://randomuser.me/api/portraits/men/52.jpg',
-      bio: 'Expert in residential properties across Oran',
-      location: 'Oran',
-      wilaya: 'Oran',
-      createdAt: new Date('2022-06-20'),
-    },
-    license: 'AG-DZ-2022-015',
-    verificationStatus: 'verified',
-    rating: 4.7,
-    reviewCount: 89,
-    totalListings: 32,
-    bio: 'Specialized in residential properties in Oran and surrounding areas. First-time buyer friendly!',
-    specializations: ['Apartments', 'First-time Buyers', 'Rentals'],
-    responseTime: 'Usually responds within 2 hours',
-    languages: ['Arabic', 'French'],
-  },
-];
+  license: dbAgent.license,
+  verificationStatus: dbAgent.verificationStatus,
+  rating: Number(dbAgent.rating),
+  reviewCount: dbAgent.reviewCount,
+  totalListings: dbAgent.totalListings,
+  bio: dbAgent.bio,
+  specializations: dbAgent.specializations || [],
+  responseTime: dbAgent.responseTime,
+  languages: dbAgent.languages || [],
+});
 
-const mockConversations: Conversation[] = [
-  {
-    id: 'conv-001',
-    participants: ['user-001', 'agent-001'],
-    propertyId: 'prop-001',
-    property: mockProperties[0],
-    lastMessage: {
-      id: 'msg-001',
-      conversationId: 'conv-001',
-      senderId: 'agent-001',
-      receiverId: 'user-001',
-      content: 'The property is still available! Would you like to schedule a visit?',
-      timestamp: new Date('2024-11-15T14:30:00'),
-      read: false,
-    },
-    unreadCount: 1,
-    updatedAt: new Date('2024-11-15T14:30:00'),
-    agent: mockAgents[0],
-  },
-  {
-    id: 'conv-002',
-    participants: ['user-001', 'agent-002'],
-    propertyId: 'prop-002',
-    property: mockProperties[1],
-    lastMessage: {
-      id: 'msg-002',
-      conversationId: 'conv-002',
-      senderId: 'user-001',
-      receiverId: 'agent-002',
-      content: 'What are the payment options available?',
-      timestamp: new Date('2024-11-14T10:15:00'),
-      read: true,
-    },
-    unreadCount: 0,
-    updatedAt: new Date('2024-11-14T10:15:00'),
-    agent: mockAgents[1],
-  },
-];
-
-const mockReviews: Review[] = [
-  {
-    id: 'review-001',
-    authorId: 'user-002',
-    author: {
-      id: 'user-002',
-      name: 'Mohammed Kaci',
-      email: 'mkaci@example.com',
-      phone: '+213 555 111 222',
-      role: 'buyer',
-      profileImage: 'https://randomuser.me/api/portraits/men/28.jpg',
-      createdAt: new Date('2024-01-10'),
-    },
-    agentId: 'agent-001',
-    rating: 5,
-    comment: 'Excellent service! Amina helped us find our dream home in just 2 weeks. Very professional and responsive.',
-    createdAt: new Date('2024-10-20'),
-  },
-  {
-    id: 'review-002',
-    authorId: 'user-003',
-    author: {
-      id: 'user-003',
-      name: 'Fatima Zohra',
-      email: 'fzohra@example.com',
-      phone: '+213 555 333 444',
-      role: 'buyer',
-      profileImage: 'https://randomuser.me/api/portraits/women/35.jpg',
-      createdAt: new Date('2024-02-15'),
-    },
-    agentId: 'agent-001',
-    rating: 5,
-    comment: 'Very knowledgeable about the Algiers market. Made the entire process smooth and stress-free.',
-    createdAt: new Date('2024-09-15'),
-  },
-];
-
-const categories: PropertyCategory[] = [
-  { id: '1', name: 'Apartments', nameAr: 'شقق', nameFr: 'Appartements', icon: 'business', type: 'apartment' },
-  { id: '2', name: 'Villas', nameAr: 'فيلات', nameFr: 'Villas', icon: 'home', type: 'villa' },
-  { id: '3', name: 'Land', nameAr: 'أراضي', nameFr: 'Terrains', icon: 'map', type: 'land' },
-  { id: '4', name: 'Commercial', nameAr: 'تجاري', nameFr: 'Commercial', icon: 'storefront', type: 'commercial' },
-];
+const mapDatabaseCategoryToCategory = (dbCategory: any): PropertyCategory => ({
+  id: dbCategory.id,
+  name: dbCategory.name,
+  nameAr: dbCategory.nameAr,
+  nameFr: dbCategory.nameFr,
+  icon: dbCategory.icon,
+  type: dbCategory.type,
+});
 
 export const useStore = create<StoreState>((set, get) => ({
   properties: [],
   featuredProperties: [],
-  agents: mockAgents,
+  agents: [],
   favorites: [],
-  conversations: mockConversations,
+  conversations: [],
   appointments: [],
-  reviews: mockReviews,
-  categories,
+  reviews: [],
+  categories: [],
   searchFilters: {},
   isLoading: false,
   error: null,
@@ -355,11 +113,19 @@ export const useStore = create<StoreState>((set, get) => ({
   fetchProperties: async () => {
     try {
       set({ isLoading: true, error: null });
-      await new Promise(resolve => setTimeout(resolve, 800));
       
-      const featured = mockProperties.filter(p => p.isVerified && p.views > 150);
+      const { data: propertiesData, error: propertiesError } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('status', 'available');
+      
+      if (propertiesError) throw propertiesError;
+      
+      const properties = (propertiesData || []).map(mapDatabasePropertyToProperty);
+      const featured = properties.filter(p => p.isVerified && p.views > 150);
+      
       set({ 
-        properties: mockProperties, 
+        properties, 
         featuredProperties: featured,
         isLoading: false 
       });
@@ -371,9 +137,16 @@ export const useStore = create<StoreState>((set, get) => ({
   fetchPropertyById: async (id: string) => {
     try {
       set({ isLoading: true, error: null });
-      await new Promise(resolve => setTimeout(resolve, 500));
       
-      const property = mockProperties.find(p => p.id === id);
+      const { data: propertyData, error } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      
+      const property = mapDatabasePropertyToProperty(propertyData);
       set({ isLoading: false });
       return property;
     } catch (error) {
@@ -385,9 +158,24 @@ export const useStore = create<StoreState>((set, get) => ({
   fetchAgentById: async (id: string) => {
     try {
       set({ isLoading: true, error: null });
-      await new Promise(resolve => setTimeout(resolve, 400));
       
-      const agent = mockAgents.find(a => a.id === id);
+      const { data: agentData, error: agentError } = await supabase
+        .from('agents')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (agentError) throw agentError;
+      
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', agentData.userId)
+        .single();
+      
+      if (userError) throw userError;
+      
+      const agent = mapDatabaseAgentToAgent(agentData, userData);
       set({ isLoading: false });
       return agent;
     } catch (error) {
@@ -399,40 +187,44 @@ export const useStore = create<StoreState>((set, get) => ({
   searchProperties: async (filters: SearchFilters) => {
     try {
       set({ isLoading: true, error: null, searchFilters: filters });
-      await new Promise(resolve => setTimeout(resolve, 600));
       
-      let results = [...mockProperties];
+      let query = supabase
+        .from('properties')
+        .select('*')
+        .eq('status', 'available');
       
       if (filters.query) {
         const q = filters.query.toLowerCase();
-        results = results.filter(p => 
-          p.title.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          p.address.toLowerCase().includes(q) ||
-          p.wilaya.toLowerCase().includes(q)
+        query = query.or(
+          `title.ilike.%${q}%,description.ilike.%${q}%,address.ilike.%${q}%,wilaya.ilike.%${q}%`
         );
       }
       
       if (filters.type && filters.type.length > 0) {
-        results = results.filter(p => filters.type!.includes(p.type));
+        query = query.in('type', filters.type);
       }
       
       if (filters.minPrice) {
-        results = results.filter(p => p.price >= filters.minPrice!);
+        query = query.gte('price', filters.minPrice);
       }
       
       if (filters.maxPrice) {
-        results = results.filter(p => p.price <= filters.maxPrice!);
+        query = query.lte('price', filters.maxPrice);
       }
       
       if (filters.minBedrooms) {
-        results = results.filter(p => p.bedrooms >= filters.minBedrooms!);
+        query = query.gte('bedrooms', filters.minBedrooms);
       }
       
       if (filters.wilaya) {
-        results = results.filter(p => p.wilaya === filters.wilaya);
+        query = query.eq('wilaya', filters.wilaya);
       }
       
+      const { data: resultsData, error } = await query;
+      
+      if (error) throw error;
+      
+      const results = (resultsData || []).map(mapDatabasePropertyToProperty);
       set({ isLoading: false });
       return results;
     } catch (error) {
@@ -443,21 +235,49 @@ export const useStore = create<StoreState>((set, get) => ({
 
   toggleFavorite: async (propertyId: string) => {
     try {
-      const { favorites } = get();
-      const existingIndex = favorites.findIndex(f => f.propertyId === propertyId);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id;
       
-      if (existingIndex >= 0) {
-        const newFavorites = favorites.filter((_, i) => i !== existingIndex);
-        set({ favorites: newFavorites });
+      if (!userId) {
+        set({ error: 'User not authenticated' });
+        return;
+      }
+      
+      const { favorites } = get();
+      const existingFavorite = favorites.find(f => f.propertyId === propertyId);
+      
+      if (existingFavorite) {
+        const { error } = await supabase
+          .from('favorites')
+          .delete()
+          .eq('id', existingFavorite.id);
+        
+        if (error) throw error;
+        
+        set({ favorites: favorites.filter(f => f.id !== existingFavorite.id) });
       } else {
-        const property = mockProperties.find(p => p.id === propertyId);
+        const { data: propertyData } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('id', propertyId)
+          .single();
+        
+        const { data: newFavoriteData, error } = await supabase
+          .from('favorites')
+          .insert([{ userId, propertyId }])
+          .select()
+          .single();
+        
+        if (error) throw error;
+        
         const newFavorite: Favorite = {
-          id: Crypto.randomUUID(),
-          userId: 'user-001',
-          propertyId,
-          property,
-          createdAt: new Date(),
+          id: newFavoriteData.id,
+          userId: newFavoriteData.userId,
+          propertyId: newFavoriteData.propertyId,
+          property: propertyData ? mapDatabasePropertyToProperty(propertyData) : undefined,
+          createdAt: new Date(newFavoriteData.created_at),
         };
+        
         set({ favorites: [...favorites, newFavorite] });
       }
     } catch (error) {
@@ -471,20 +291,58 @@ export const useStore = create<StoreState>((set, get) => ({
 
   sendMessage: async (conversationId: string, content: string) => {
     try {
-      const { conversations } = get();
-      const newMessage: Message = {
-        id: Crypto.randomUUID(),
-        conversationId,
-        senderId: 'user-001',
-        receiverId: 'agent-001',
-        content,
-        timestamp: new Date(),
-        read: false,
-      };
+      const { data: sessionData } = await supabase.auth.getSession();
+      const senderId = sessionData?.session?.user?.id;
       
+      if (!senderId) {
+        set({ error: 'User not authenticated' });
+        return;
+      }
+      
+      const { data: conversationData, error: convError } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('id', conversationId)
+        .single();
+      
+      if (convError) throw convError;
+      
+      const receiverId = conversationData.participants.find((p: string) => p !== senderId);
+      
+      if (!receiverId) {
+        set({ error: 'Invalid conversation' });
+        return;
+      }
+      
+      const { data: messageData, error } = await supabase
+        .from('messages')
+        .insert([{
+          conversationId,
+          senderId,
+          receiverId,
+          content,
+        }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      const { conversations } = get();
       const updatedConversations = conversations.map(c => {
         if (c.id === conversationId) {
-          return { ...c, lastMessage: newMessage, updatedAt: new Date() };
+          return {
+            ...c,
+            lastMessage: {
+              id: messageData.id,
+              conversationId: messageData.conversationId,
+              senderId: messageData.senderId,
+              receiverId: messageData.receiverId,
+              content: messageData.content,
+              timestamp: new Date(messageData.timestamp),
+              read: messageData.read,
+            },
+            updatedAt: new Date(messageData.timestamp),
+          };
         }
         return c;
       });
@@ -497,18 +355,45 @@ export const useStore = create<StoreState>((set, get) => ({
 
   createAppointment: async (agentId: string, propertyId: string, scheduledTime: Date) => {
     try {
-      set({ isLoading: true });
-      await new Promise(resolve => setTimeout(resolve, 800));
+      set({ isLoading: true, error: null });
       
-      const property = mockProperties.find(p => p.id === propertyId);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const buyerId = sessionData?.session?.user?.id;
+      
+      if (!buyerId) {
+        set({ error: 'User not authenticated', isLoading: false });
+        return;
+      }
+      
+      const { data: propertyData } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('id', propertyId)
+        .single();
+      
+      const { data: appointmentData, error } = await supabase
+        .from('appointments')
+        .insert([{
+          buyerId,
+          agentId,
+          propertyId,
+          scheduledTime: scheduledTime.toISOString(),
+          status: 'pending',
+        }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
       const newAppointment: Appointment = {
-        id: Crypto.randomUUID(),
-        buyerId: 'user-001',
-        agentId,
-        propertyId,
-        property,
-        scheduledTime,
-        status: 'pending',
+        id: appointmentData.id,
+        buyerId: appointmentData.buyerId,
+        agentId: appointmentData.agentId,
+        propertyId: appointmentData.propertyId,
+        property: propertyData ? mapDatabasePropertyToProperty(propertyData) : undefined,
+        scheduledTime: new Date(appointmentData.scheduledTime),
+        status: appointmentData.status,
+        notes: appointmentData.notes,
       };
       
       set(state => ({ 

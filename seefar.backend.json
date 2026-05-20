@@ -1,0 +1,1249 @@
+{
+  "version": "1.1",
+  "generatedAt": "2026-05-20T10:43:32.144Z",
+  "schema": {
+    "sql": "CREATE TABLE IF NOT EXISTS public.users (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  name text,\n  email text UNIQUE,\n  phone text,\n  role text,\n  \"profileImage\" text,\n  bio text,\n  location text,\n  wilaya text,\n  created_at timestamptz DEFAULT now(),\n  updated_at timestamptz DEFAULT now()\n);\n\nCREATE TABLE IF NOT EXISTS public.property_categories (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  name text NOT NULL,\n  \"nameAr\" text,\n  \"nameFr\" text,\n  icon text,\n  type text,\n  created_at timestamptz DEFAULT now()\n);\n\nCREATE TABLE IF NOT EXISTS public.properties (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  title text NOT NULL,\n  description text,\n  type text,\n  price numeric,\n  currency text,\n  bedrooms integer,\n  bathrooms integer,\n  area numeric,\n  address text,\n  wilaya text,\n  commune text,\n  latitude numeric,\n  longitude numeric,\n  images text[],\n  amenities text[],\n  status text,\n  \"agentId\" uuid REFERENCES public.users(id) ON DELETE SET NULL,\n  \"isVerified\" boolean DEFAULT false,\n  views integer DEFAULT 0,\n  created_at timestamptz DEFAULT now(),\n  updated_at timestamptz DEFAULT now()\n);\n\nCREATE TABLE IF NOT EXISTS public.agents (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  \"userId\" uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,\n  license text,\n  \"verificationStatus\" text,\n  rating numeric DEFAULT 0,\n  \"reviewCount\" integer DEFAULT 0,\n  \"totalListings\" integer DEFAULT 0,\n  bio text,\n  specializations text[],\n  \"responseTime\" text,\n  languages text[],\n  created_at timestamptz DEFAULT now()\n);\n\nCREATE TABLE IF NOT EXISTS public.favorites (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  \"userId\" uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,\n  \"propertyId\" uuid NOT NULL REFERENCES public.properties(id) ON DELETE CASCADE,\n  created_at timestamptz DEFAULT now(),\n  UNIQUE(\"userId\", \"propertyId\")\n);\n\nCREATE TABLE IF NOT EXISTS public.conversations (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  participants uuid[] NOT NULL,\n  \"propertyId\" uuid REFERENCES public.properties(id) ON DELETE SET NULL,\n  \"unreadCount\" integer DEFAULT 0,\n  updated_at timestamptz DEFAULT now(),\n  created_at timestamptz DEFAULT now()\n);\n\nCREATE TABLE IF NOT EXISTS public.messages (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  \"conversationId\" uuid NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,\n  \"senderId\" uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,\n  \"receiverId\" uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,\n  \"propertyId\" uuid REFERENCES public.properties(id) ON DELETE SET NULL,\n  content text,\n  read boolean DEFAULT false,\n  timestamp timestamptz DEFAULT now()\n);\n\nCREATE TABLE IF NOT EXISTS public.appointments (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  \"buyerId\" uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,\n  \"agentId\" uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,\n  \"propertyId\" uuid NOT NULL REFERENCES public.properties(id) ON DELETE CASCADE,\n  \"scheduledTime\" timestamptz,\n  status text,\n  notes text,\n  created_at timestamptz DEFAULT now()\n);\n\nCREATE TABLE IF NOT EXISTS public.reviews (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  \"authorId\" uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,\n  \"agentId\" uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,\n  rating integer,\n  comment text,\n  created_at timestamptz DEFAULT now()\n);\n\nCREATE INDEX IF NOT EXISTS idx_properties_agentId ON public.properties(\"agentId\");\nCREATE INDEX IF NOT EXISTS idx_properties_wilaya ON public.properties(wilaya);\nCREATE INDEX IF NOT EXISTS idx_properties_status ON public.properties(status);\nCREATE INDEX IF NOT EXISTS idx_properties_created_at ON public.properties(created_at);\nCREATE INDEX IF NOT EXISTS idx_favorites_userId ON public.favorites(\"userId\");\nCREATE INDEX IF NOT EXISTS idx_favorites_propertyId ON public.favorites(\"propertyId\");\nCREATE INDEX IF NOT EXISTS idx_messages_conversationId ON public.messages(\"conversationId\");\nCREATE INDEX IF NOT EXISTS idx_messages_senderId ON public.messages(\"senderId\");\nCREATE INDEX IF NOT EXISTS idx_messages_receiverId ON public.messages(\"receiverId\");\nCREATE INDEX IF NOT EXISTS idx_messages_timestamp ON public.messages(timestamp);\nCREATE INDEX IF NOT EXISTS idx_appointments_buyerId ON public.appointments(\"buyerId\");\nCREATE INDEX IF NOT EXISTS idx_appointments_agentId ON public.appointments(\"agentId\");\nCREATE INDEX IF NOT EXISTS idx_appointments_propertyId ON public.appointments(\"propertyId\");\nCREATE INDEX IF NOT EXISTS idx_appointments_scheduledTime ON public.appointments(\"scheduledTime\");\nCREATE INDEX IF NOT EXISTS idx_reviews_authorId ON public.reviews(\"authorId\");\nCREATE INDEX IF NOT EXISTS idx_reviews_agentId ON public.reviews(\"agentId\");\nCREATE INDEX IF NOT EXISTS idx_agents_userId ON public.agents(\"userId\");\n\nALTER TABLE public.users ENABLE ROW LEVEL SECURITY;\nALTER TABLE public.properties ENABLE ROW LEVEL SECURITY;\nALTER TABLE public.agents ENABLE ROW LEVEL SECURITY;\nALTER TABLE public.favorites ENABLE ROW LEVEL SECURITY;\nALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;\nALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;\nALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;\nALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;\nALTER TABLE public.property_categories ENABLE ROW LEVEL SECURITY;\n\nCREATE POLICY \"Users can view own profile\" ON public.users FOR SELECT USING (auth.uid() = id);\nCREATE POLICY \"Users can update own profile\" ON public.users FOR UPDATE USING (auth.uid() = id);\nCREATE POLICY \"Public can view user profiles\" ON public.users FOR SELECT USING (true);\n\nCREATE POLICY \"Anyone can view properties\" ON public.properties FOR SELECT USING (true);\nCREATE POLICY \"Agents can insert properties\" ON public.properties FOR INSERT WITH CHECK (auth.uid() = \"agentId\");\nCREATE POLICY \"Agents can update own properties\" ON public.properties FOR UPDATE USING (auth.uid() = \"agentId\");\nCREATE POLICY \"Agents can delete own properties\" ON public.properties FOR DELETE USING (auth.uid() = \"agentId\");\n\nCREATE POLICY \"Users can view own agent profile\" ON public.agents FOR SELECT USING (auth.uid() = \"userId\" OR true);\nCREATE POLICY \"Public can view agent profiles\" ON public.agents FOR SELECT USING (true);\n\nCREATE POLICY \"Users can view own favorites\" ON public.favorites FOR SELECT USING (auth.uid() = \"userId\");\nCREATE POLICY \"Users can insert own favorites\" ON public.favorites FOR INSERT WITH CHECK (auth.uid() = \"userId\");\nCREATE POLICY \"Users can delete own favorites\" ON public.favorites FOR DELETE USING (auth.uid() = \"userId\");\n\nCREATE POLICY \"Users can view own messages\" ON public.messages FOR SELECT USING (auth.uid() = \"senderId\" OR auth.uid() = \"receiverId\");\nCREATE POLICY \"Users can insert messages\" ON public.messages FOR INSERT WITH CHECK (auth.uid() = \"senderId\");\nCREATE POLICY \"Users can update own messages\" ON public.messages FOR UPDATE USING (auth.uid() = \"senderId\");\n\nCREATE POLICY \"Users can view conversations\" ON public.conversations FOR SELECT USING (auth.uid() = ANY(participants));\nCREATE POLICY \"Users can insert conversations\" ON public.conversations FOR INSERT WITH CHECK (auth.uid() = ANY(participants));\nCREATE POLICY \"Users can update conversations\" ON public.conversations FOR UPDATE USING (auth.uid() = ANY(participants));\n\nCREATE POLICY \"Users can view own appointments\" ON public.appointments FOR SELECT USING (auth.uid() = \"buyerId\" OR auth.uid() = \"agentId\");\nCREATE POLICY \"Users can insert appointments\" ON public.appointments FOR INSERT WITH CHECK (auth.uid() = \"buyerId\");\nCREATE POLICY \"Users can update own appointments\" ON public.appointments FOR UPDATE USING (auth.uid() = \"buyerId\" OR auth.uid() = \"agentId\");\n\nCREATE POLICY \"Users can view reviews\" ON public.reviews FOR SELECT USING (true);\nCREATE POLICY \"Users can insert reviews\" ON public.reviews FOR INSERT WITH CHECK (auth.uid() = \"authorId\");\n\nCREATE POLICY \"Anyone can view categories\" ON public.property_categories FOR SELECT USING (true);\n\nCREATE OR REPLACE FUNCTION public.handle_new_user()\nRETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$\nBEGIN\n  INSERT INTO public.users (id, email, name, phone, role, \"profileImage\", bio, location, wilaya, created_at, updated_at)\n  VALUES (\n    NEW.id,\n    NEW.email,\n    NEW.raw_user_meta_data ->> 'name',\n    NEW.raw_user_meta_data ->> 'phone',\n    NEW.raw_user_meta_data ->> 'role',\n    NEW.raw_user_meta_data ->> 'profileImage',\n    NEW.raw_user_meta_data ->> 'bio',\n    NEW.raw_user_meta_data ->> 'location',\n    NEW.raw_user_meta_data ->> 'wilaya',\n    now(),\n    now()\n  )\n  ON CONFLICT (id) DO NOTHING;\n  RETURN NEW;\nEND; $$;\n\nDROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;\nCREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();\n\n-- === Deterministic CRUD policies for user-owned tables (generated by SupabaseConfigAgent) ===\n-- Every table with a direct or transitive ownership path to auth.users gets INSERT/UPDATE/DELETE\n-- policies so client-side writes by the owner succeed while cross-user writes are blocked.\n-- Idempotent: safe to re-run.\nDROP POLICY IF EXISTS \"Users can insert own properties\" ON public.\"properties\";\nCREATE POLICY \"Users can insert own properties\" ON public.\"properties\" FOR INSERT WITH CHECK (auth.uid() = \"agentId\");\nDROP POLICY IF EXISTS \"Users can update own properties\" ON public.\"properties\";\nCREATE POLICY \"Users can update own properties\" ON public.\"properties\" FOR UPDATE USING (auth.uid() = \"agentId\") WITH CHECK (auth.uid() = \"agentId\");\nDROP POLICY IF EXISTS \"Users can delete own properties\" ON public.\"properties\";\nCREATE POLICY \"Users can delete own properties\" ON public.\"properties\" FOR DELETE USING (auth.uid() = \"agentId\");\n\nDROP POLICY IF EXISTS \"Users can insert own agents\" ON public.\"agents\";\nCREATE POLICY \"Users can insert own agents\" ON public.\"agents\" FOR INSERT WITH CHECK (auth.uid() = \"userId\");\nDROP POLICY IF EXISTS \"Users can update own agents\" ON public.\"agents\";\nCREATE POLICY \"Users can update own agents\" ON public.\"agents\" FOR UPDATE USING (auth.uid() = \"userId\") WITH CHECK (auth.uid() = \"userId\");\nDROP POLICY IF EXISTS \"Users can delete own agents\" ON public.\"agents\";\nCREATE POLICY \"Users can delete own agents\" ON public.\"agents\" FOR DELETE USING (auth.uid() = \"userId\");\n\nDROP POLICY IF EXISTS \"Users can insert own favorites\" ON public.\"favorites\";\nCREATE POLICY \"Users can insert own favorites\" ON public.\"favorites\" FOR INSERT WITH CHECK (auth.uid() = \"userId\");\nDROP POLICY IF EXISTS \"Users can update own favorites\" ON public.\"favorites\";\nCREATE POLICY \"Users can update own favorites\" ON public.\"favorites\" FOR UPDATE USING (auth.uid() = \"userId\") WITH CHECK (auth.uid() = \"userId\");\nDROP POLICY IF EXISTS \"Users can delete own favorites\" ON public.\"favorites\";\nCREATE POLICY \"Users can delete own favorites\" ON public.\"favorites\" FOR DELETE USING (auth.uid() = \"userId\");\n\nDROP POLICY IF EXISTS \"Users can insert own messages\" ON public.\"messages\";\nCREATE POLICY \"Users can insert own messages\" ON public.\"messages\" FOR INSERT WITH CHECK (auth.uid() = \"senderId\");\nDROP POLICY IF EXISTS \"Users can update own messages\" ON public.\"messages\";\nCREATE POLICY \"Users can update own messages\" ON public.\"messages\" FOR UPDATE USING (auth.uid() = \"senderId\") WITH CHECK (auth.uid() = \"senderId\");\nDROP POLICY IF EXISTS \"Users can delete own messages\" ON public.\"messages\";\nCREATE POLICY \"Users can delete own messages\" ON public.\"messages\" FOR DELETE USING (auth.uid() = \"senderId\");\n\nDROP POLICY IF EXISTS \"Users can insert own conversations\" ON public.\"conversations\";\nCREATE POLICY \"Users can insert own conversations\" ON public.\"conversations\" FOR INSERT WITH CHECK (\"propertyId\" IN (SELECT \"id\" FROM public.\"properties\" WHERE \"agentId\" = auth.uid()));\nDROP POLICY IF EXISTS \"Users can update own conversations\" ON public.\"conversations\";\nCREATE POLICY \"Users can update own conversations\" ON public.\"conversations\" FOR UPDATE USING (\"propertyId\" IN (SELECT \"id\" FROM public.\"properties\" WHERE \"agentId\" = auth.uid())) WITH CHECK (\"propertyId\" IN (SELECT \"id\" FROM public.\"properties\" WHERE \"agentId\" = auth.uid()));\nDROP POLICY IF EXISTS \"Users can delete own conversations\" ON public.\"conversations\";\nCREATE POLICY \"Users can delete own conversations\" ON public.\"conversations\" FOR DELETE USING (\"propertyId\" IN (SELECT \"id\" FROM public.\"properties\" WHERE \"agentId\" = auth.uid()));\n\nDROP POLICY IF EXISTS \"Users can insert own appointments\" ON public.\"appointments\";\nCREATE POLICY \"Users can insert own appointments\" ON public.\"appointments\" FOR INSERT WITH CHECK (auth.uid() = \"buyerId\");\nDROP POLICY IF EXISTS \"Users can update own appointments\" ON public.\"appointments\";\nCREATE POLICY \"Users can update own appointments\" ON public.\"appointments\" FOR UPDATE USING (auth.uid() = \"buyerId\") WITH CHECK (auth.uid() = \"buyerId\");\nDROP POLICY IF EXISTS \"Users can delete own appointments\" ON public.\"appointments\";\nCREATE POLICY \"Users can delete own appointments\" ON public.\"appointments\" FOR DELETE USING (auth.uid() = \"buyerId\");\n\nDROP POLICY IF EXISTS \"Users can insert own reviews\" ON public.\"reviews\";\nCREATE POLICY \"Users can insert own reviews\" ON public.\"reviews\" FOR INSERT WITH CHECK (auth.uid() = \"authorId\");\nDROP POLICY IF EXISTS \"Users can update own reviews\" ON public.\"reviews\";\nCREATE POLICY \"Users can update own reviews\" ON public.\"reviews\" FOR UPDATE USING (auth.uid() = \"authorId\") WITH CHECK (auth.uid() = \"authorId\");\nDROP POLICY IF EXISTS \"Users can delete own reviews\" ON public.\"reviews\";\nCREATE POLICY \"Users can delete own reviews\" ON public.\"reviews\" FOR DELETE USING (auth.uid() = \"authorId\");\n\n\n-- === Deterministic storage.objects policies (generated by SupabaseConfigAgent) ===\n-- Every declared bucket gets owner-scoped INSERT/UPDATE/DELETE policies using the\n-- first path segment as the owner uid. Public buckets additionally get public-read\n-- SELECT so getPublicUrl(...) resolves instead of returning \"Bucket not found\" 404.\n-- Idempotent: safe to re-run.\nDROP POLICY IF EXISTS \"property-images_public_read\" ON storage.objects;\nCREATE POLICY \"property-images_public_read\" ON storage.objects FOR SELECT TO public USING (bucket_id = 'property-images');\nDROP POLICY IF EXISTS \"property-images_owner_insert\" ON storage.objects;\nCREATE POLICY \"property-images_owner_insert\" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'property-images' AND (storage.foldername(name))[1] = auth.uid()::text);\nDROP POLICY IF EXISTS \"property-images_owner_update\" ON storage.objects;\nCREATE POLICY \"property-images_owner_update\" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'property-images' AND (storage.foldername(name))[1] = auth.uid()::text) WITH CHECK (bucket_id = 'property-images' AND (storage.foldername(name))[1] = auth.uid()::text);\nDROP POLICY IF EXISTS \"property-images_owner_delete\" ON storage.objects;\nCREATE POLICY \"property-images_owner_delete\" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'property-images' AND (storage.foldername(name))[1] = auth.uid()::text);\n\nDROP POLICY IF EXISTS \"user-avatars_public_read\" ON storage.objects;\nCREATE POLICY \"user-avatars_public_read\" ON storage.objects FOR SELECT TO public USING (bucket_id = 'user-avatars');\nDROP POLICY IF EXISTS \"user-avatars_owner_insert\" ON storage.objects;\nCREATE POLICY \"user-avatars_owner_insert\" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'user-avatars' AND (storage.foldername(name))[1] = auth.uid()::text);\nDROP POLICY IF EXISTS \"user-avatars_owner_update\" ON storage.objects;\nCREATE POLICY \"user-avatars_owner_update\" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'user-avatars' AND (storage.foldername(name))[1] = auth.uid()::text) WITH CHECK (bucket_id = 'user-avatars' AND (storage.foldername(name))[1] = auth.uid()::text);\nDROP POLICY IF EXISTS \"user-avatars_owner_delete\" ON storage.objects;\nCREATE POLICY \"user-avatars_owner_delete\" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'user-avatars' AND (storage.foldername(name))[1] = auth.uid()::text);\n",
+    "tables": [
+      {
+        "name": "users",
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid"
+          },
+          {
+            "name": "name",
+            "type": "text"
+          },
+          {
+            "name": "email",
+            "type": "text"
+          },
+          {
+            "name": "phone",
+            "type": "text"
+          },
+          {
+            "name": "role",
+            "type": "text"
+          },
+          {
+            "name": "profileImage",
+            "type": "text"
+          },
+          {
+            "name": "bio",
+            "type": "text"
+          },
+          {
+            "name": "location",
+            "type": "text"
+          },
+          {
+            "name": "wilaya",
+            "type": "text"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz"
+          }
+        ]
+      },
+      {
+        "name": "properties",
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid"
+          },
+          {
+            "name": "title",
+            "type": "text"
+          },
+          {
+            "name": "description",
+            "type": "text"
+          },
+          {
+            "name": "type",
+            "type": "text"
+          },
+          {
+            "name": "price",
+            "type": "numeric"
+          },
+          {
+            "name": "currency",
+            "type": "text"
+          },
+          {
+            "name": "bedrooms",
+            "type": "integer"
+          },
+          {
+            "name": "bathrooms",
+            "type": "integer"
+          },
+          {
+            "name": "area",
+            "type": "numeric"
+          },
+          {
+            "name": "address",
+            "type": "text"
+          },
+          {
+            "name": "wilaya",
+            "type": "text"
+          },
+          {
+            "name": "commune",
+            "type": "text"
+          },
+          {
+            "name": "latitude",
+            "type": "numeric"
+          },
+          {
+            "name": "longitude",
+            "type": "numeric"
+          },
+          {
+            "name": "images",
+            "type": "text[]"
+          },
+          {
+            "name": "amenities",
+            "type": "text[]"
+          },
+          {
+            "name": "status",
+            "type": "text"
+          },
+          {
+            "name": "agentId",
+            "type": "uuid"
+          },
+          {
+            "name": "isVerified",
+            "type": "boolean"
+          },
+          {
+            "name": "views",
+            "type": "integer"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamptz"
+          }
+        ]
+      },
+      {
+        "name": "agents",
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid"
+          },
+          {
+            "name": "userId",
+            "type": "uuid"
+          },
+          {
+            "name": "license",
+            "type": "text"
+          },
+          {
+            "name": "verificationStatus",
+            "type": "text"
+          },
+          {
+            "name": "rating",
+            "type": "numeric"
+          },
+          {
+            "name": "reviewCount",
+            "type": "integer"
+          },
+          {
+            "name": "totalListings",
+            "type": "integer"
+          },
+          {
+            "name": "bio",
+            "type": "text"
+          },
+          {
+            "name": "specializations",
+            "type": "text[]"
+          },
+          {
+            "name": "responseTime",
+            "type": "text"
+          },
+          {
+            "name": "languages",
+            "type": "text[]"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz"
+          }
+        ]
+      },
+      {
+        "name": "favorites",
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid"
+          },
+          {
+            "name": "userId",
+            "type": "uuid"
+          },
+          {
+            "name": "propertyId",
+            "type": "uuid"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz"
+          }
+        ]
+      },
+      {
+        "name": "messages",
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid"
+          },
+          {
+            "name": "conversationId",
+            "type": "uuid"
+          },
+          {
+            "name": "senderId",
+            "type": "uuid"
+          },
+          {
+            "name": "receiverId",
+            "type": "uuid"
+          },
+          {
+            "name": "propertyId",
+            "type": "uuid"
+          },
+          {
+            "name": "content",
+            "type": "text"
+          },
+          {
+            "name": "read",
+            "type": "boolean"
+          },
+          {
+            "name": "timestamp",
+            "type": "timestamptz"
+          }
+        ]
+      },
+      {
+        "name": "conversations",
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid"
+          },
+          {
+            "name": "participants",
+            "type": "uuid[]"
+          },
+          {
+            "name": "propertyId",
+            "type": "uuid"
+          },
+          {
+            "name": "unreadCount",
+            "type": "integer"
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamptz"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz"
+          }
+        ]
+      },
+      {
+        "name": "appointments",
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid"
+          },
+          {
+            "name": "buyerId",
+            "type": "uuid"
+          },
+          {
+            "name": "agentId",
+            "type": "uuid"
+          },
+          {
+            "name": "propertyId",
+            "type": "uuid"
+          },
+          {
+            "name": "scheduledTime",
+            "type": "timestamptz"
+          },
+          {
+            "name": "status",
+            "type": "text"
+          },
+          {
+            "name": "notes",
+            "type": "text"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz"
+          }
+        ]
+      },
+      {
+        "name": "reviews",
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid"
+          },
+          {
+            "name": "authorId",
+            "type": "uuid"
+          },
+          {
+            "name": "agentId",
+            "type": "uuid"
+          },
+          {
+            "name": "rating",
+            "type": "integer"
+          },
+          {
+            "name": "comment",
+            "type": "text"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz"
+          }
+        ]
+      },
+      {
+        "name": "property_categories",
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid"
+          },
+          {
+            "name": "name",
+            "type": "text"
+          },
+          {
+            "name": "nameAr",
+            "type": "text"
+          },
+          {
+            "name": "nameFr",
+            "type": "text"
+          },
+          {
+            "name": "icon",
+            "type": "text"
+          },
+          {
+            "name": "type",
+            "type": "text"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz"
+          }
+        ]
+      }
+    ]
+  },
+  "auth": {
+    "external_email_enabled": true,
+    "mailer_autoconfirm": true
+  },
+  "storage": {
+    "buckets": [
+      {
+        "name": "property-images",
+        "public": true,
+        "options": {
+          "public": true,
+          "allowedMimeTypes": [
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/gif"
+          ],
+          "fileSizeLimit": 5242880
+        }
+      },
+      {
+        "name": "user-avatars",
+        "public": true,
+        "options": {
+          "public": true,
+          "allowedMimeTypes": [
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/gif"
+          ],
+          "fileSizeLimit": 5242880
+        }
+      }
+    ]
+  },
+  "supabase": {
+    "projectRef": "jlupgripsfplcotphhag",
+    "projectUrl": "https://jlupgripsfplcotphhag.supabase.co",
+    "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpsdXBncmlwc2ZwbGNvdHBoaGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDkxNjgsImV4cCI6MjA5NDgyNTE2OH0.aJfSh1K7w5jYKjkmSz_zqsR15rbzQRhPTMvbOtyShTs",
+    "status": "ready"
+  },
+  "consumers": {
+    "mobile": {
+      "projectId": null,
+      "projectName": null,
+      "projectPath": "/Users/khalilhaif/Desktop/dzairBuilder/generated-projects/project-c2f6feb3",
+      "lastGeneratedAt": "2026-05-20T10:43:32.144Z",
+      "contractHash": "911d70231d00bddea26301a2c955dac1d48a003202267a9ee9d1bdbacd47d067"
+    },
+    "adminPanel": {
+      "projectId": null,
+      "projectName": null,
+      "projectPath": null,
+      "lastGeneratedAt": null,
+      "contractHash": null
+    }
+  },
+  "admin": {
+    "resources": [
+      {
+        "table": "users",
+        "label": "Users",
+        "enabled": true,
+        "operations": [
+          "list",
+          "view",
+          "create",
+          "edit",
+          "delete"
+        ],
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "label": "Id",
+            "visible": true,
+            "editable": false,
+            "required": false
+          },
+          {
+            "name": "name",
+            "type": "text",
+            "label": "Name",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "email",
+            "type": "text",
+            "label": "Email",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "phone",
+            "type": "text",
+            "label": "Phone",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "role",
+            "type": "text",
+            "label": "Role",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "profileImage",
+            "type": "text",
+            "label": "ProfileImage",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "bio",
+            "type": "text",
+            "label": "Bio",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "location",
+            "type": "text",
+            "label": "Location",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "wilaya",
+            "type": "text",
+            "label": "Wilaya",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "label": "Created At",
+            "visible": true,
+            "editable": false,
+            "required": false
+          }
+        ]
+      },
+      {
+        "table": "properties",
+        "label": "Properties",
+        "enabled": true,
+        "operations": [
+          "list",
+          "view",
+          "create",
+          "edit",
+          "delete"
+        ],
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "label": "Id",
+            "visible": true,
+            "editable": false,
+            "required": false
+          },
+          {
+            "name": "title",
+            "type": "text",
+            "label": "Title",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "description",
+            "type": "text",
+            "label": "Description",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "type",
+            "type": "text",
+            "label": "Type",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "price",
+            "type": "numeric",
+            "label": "Price",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "currency",
+            "type": "text",
+            "label": "Currency",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "bedrooms",
+            "type": "integer",
+            "label": "Bedrooms",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "bathrooms",
+            "type": "integer",
+            "label": "Bathrooms",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "area",
+            "type": "numeric",
+            "label": "Area",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "address",
+            "type": "text",
+            "label": "Address",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "wilaya",
+            "type": "text",
+            "label": "Wilaya",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "commune",
+            "type": "text",
+            "label": "Commune",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "latitude",
+            "type": "numeric",
+            "label": "Latitude",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "longitude",
+            "type": "numeric",
+            "label": "Longitude",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "images",
+            "type": "text[]",
+            "label": "Images",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "amenities",
+            "type": "text[]",
+            "label": "Amenities",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "status",
+            "type": "text",
+            "label": "Status",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "agentId",
+            "type": "uuid",
+            "label": "AgentId",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "isVerified",
+            "type": "boolean",
+            "label": "IsVerified",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "views",
+            "type": "integer",
+            "label": "Views",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "label": "Created At",
+            "visible": true,
+            "editable": false,
+            "required": false
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamptz",
+            "label": "Updated At",
+            "visible": true,
+            "editable": false,
+            "required": false
+          }
+        ]
+      },
+      {
+        "table": "agents",
+        "label": "Agents",
+        "enabled": true,
+        "operations": [
+          "list",
+          "view",
+          "create",
+          "edit",
+          "delete"
+        ],
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "label": "Id",
+            "visible": true,
+            "editable": false,
+            "required": false
+          },
+          {
+            "name": "userId",
+            "type": "uuid",
+            "label": "UserId",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "license",
+            "type": "text",
+            "label": "License",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "verificationStatus",
+            "type": "text",
+            "label": "VerificationStatus",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "rating",
+            "type": "numeric",
+            "label": "Rating",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "reviewCount",
+            "type": "integer",
+            "label": "ReviewCount",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "totalListings",
+            "type": "integer",
+            "label": "TotalListings",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "bio",
+            "type": "text",
+            "label": "Bio",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "specializations",
+            "type": "text[]",
+            "label": "Specializations",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "responseTime",
+            "type": "text",
+            "label": "ResponseTime",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "languages",
+            "type": "text[]",
+            "label": "Languages",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "label": "Created At",
+            "visible": true,
+            "editable": false,
+            "required": false
+          }
+        ]
+      },
+      {
+        "table": "favorites",
+        "label": "Favorites",
+        "enabled": true,
+        "operations": [
+          "list",
+          "view",
+          "create",
+          "edit",
+          "delete"
+        ],
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "label": "Id",
+            "visible": true,
+            "editable": false,
+            "required": false
+          },
+          {
+            "name": "userId",
+            "type": "uuid",
+            "label": "UserId",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "propertyId",
+            "type": "uuid",
+            "label": "PropertyId",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "label": "Created At",
+            "visible": true,
+            "editable": false,
+            "required": false
+          }
+        ]
+      },
+      {
+        "table": "messages",
+        "label": "Messages",
+        "enabled": true,
+        "operations": [
+          "list",
+          "view",
+          "create",
+          "edit",
+          "delete"
+        ],
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "label": "Id",
+            "visible": true,
+            "editable": false,
+            "required": false
+          },
+          {
+            "name": "conversationId",
+            "type": "uuid",
+            "label": "ConversationId",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "senderId",
+            "type": "uuid",
+            "label": "SenderId",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "receiverId",
+            "type": "uuid",
+            "label": "ReceiverId",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "propertyId",
+            "type": "uuid",
+            "label": "PropertyId",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "content",
+            "type": "text",
+            "label": "Content",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "read",
+            "type": "boolean",
+            "label": "Read",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "timestamp",
+            "type": "timestamptz",
+            "label": "Timestamp",
+            "visible": true,
+            "editable": true,
+            "required": false
+          }
+        ]
+      },
+      {
+        "table": "conversations",
+        "label": "Conversations",
+        "enabled": true,
+        "operations": [
+          "list",
+          "view",
+          "create",
+          "edit",
+          "delete"
+        ],
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "label": "Id",
+            "visible": true,
+            "editable": false,
+            "required": false
+          },
+          {
+            "name": "participants",
+            "type": "uuid[]",
+            "label": "Participants",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "propertyId",
+            "type": "uuid",
+            "label": "PropertyId",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "unreadCount",
+            "type": "integer",
+            "label": "UnreadCount",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamptz",
+            "label": "Updated At",
+            "visible": true,
+            "editable": false,
+            "required": false
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "label": "Created At",
+            "visible": true,
+            "editable": false,
+            "required": false
+          }
+        ]
+      },
+      {
+        "table": "appointments",
+        "label": "Appointments",
+        "enabled": true,
+        "operations": [
+          "list",
+          "view",
+          "create",
+          "edit",
+          "delete"
+        ],
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "label": "Id",
+            "visible": true,
+            "editable": false,
+            "required": false
+          },
+          {
+            "name": "buyerId",
+            "type": "uuid",
+            "label": "BuyerId",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "agentId",
+            "type": "uuid",
+            "label": "AgentId",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "propertyId",
+            "type": "uuid",
+            "label": "PropertyId",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "scheduledTime",
+            "type": "timestamptz",
+            "label": "ScheduledTime",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "status",
+            "type": "text",
+            "label": "Status",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "notes",
+            "type": "text",
+            "label": "Notes",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "label": "Created At",
+            "visible": true,
+            "editable": false,
+            "required": false
+          }
+        ]
+      },
+      {
+        "table": "reviews",
+        "label": "Reviews",
+        "enabled": true,
+        "operations": [
+          "list",
+          "view",
+          "create",
+          "edit",
+          "delete"
+        ],
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "label": "Id",
+            "visible": true,
+            "editable": false,
+            "required": false
+          },
+          {
+            "name": "authorId",
+            "type": "uuid",
+            "label": "AuthorId",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "agentId",
+            "type": "uuid",
+            "label": "AgentId",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "rating",
+            "type": "integer",
+            "label": "Rating",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "comment",
+            "type": "text",
+            "label": "Comment",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "label": "Created At",
+            "visible": true,
+            "editable": false,
+            "required": false
+          }
+        ]
+      },
+      {
+        "table": "property_categories",
+        "label": "Property Categories",
+        "enabled": true,
+        "operations": [
+          "list",
+          "view",
+          "create",
+          "edit",
+          "delete"
+        ],
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "label": "Id",
+            "visible": true,
+            "editable": false,
+            "required": false
+          },
+          {
+            "name": "name",
+            "type": "text",
+            "label": "Name",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "nameAr",
+            "type": "text",
+            "label": "NameAr",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "nameFr",
+            "type": "text",
+            "label": "NameFr",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "icon",
+            "type": "text",
+            "label": "Icon",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "type",
+            "type": "text",
+            "label": "Type",
+            "visible": true,
+            "editable": true,
+            "required": false
+          },
+          {
+            "name": "created_at",
+            "type": "timestamptz",
+            "label": "Created At",
+            "visible": true,
+            "editable": false,
+            "required": false
+          }
+        ]
+      }
+    ],
+    "sync": {
+      "status": "unknown",
+      "pendingActions": [],
+      "lastCheckedAt": null
+    }
+  },
+  "sync": {
+    "status": "unknown",
+    "pendingActions": [],
+    "lastCheckedAt": null
+  },
+  "contractHash": "911d70231d00bddea26301a2c955dac1d48a003202267a9ee9d1bdbacd47d067"
+}

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import * as Crypto from 'expo-crypto';
+import { supabase } from '@/lib/supabase';
 import { User } from '@/types';
 
 interface AuthState {
@@ -8,39 +8,34 @@ interface AuthState {
   isLoading: boolean;
   authError: string | null;
   login: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string, role: User['role']) => Promise<boolean>;
+  signup: (data: {
+    name: string;
+    email: string;
+    password: string;
+    phone?: string;
+    role: User['role'];
+    bio?: string;
+    location?: string;
+    wilaya?: string;
+  }) => Promise<boolean>;
   logout: () => Promise<void>;
   initializeAuth: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
   clearError: () => void;
 }
 
-const mockUsers: User[] = [
-  {
-    id: 'user-001',
-    name: 'Karim Benali',
-    email: 'karim@example.com',
-    phone: '+213 555 123 456',
-    role: 'buyer',
-    profileImage: 'https://randomuser.me/api/portraits/men/32.jpg',
-    bio: 'Looking for my dream home in Algiers',
-    location: 'Alger',
-    wilaya: 'Alger',
-    createdAt: new Date('2024-01-15'),
-  },
-  {
-    id: 'agent-001',
-    name: 'Amina Hadj',
-    email: 'amina@example.com',
-    phone: '+213 555 789 012',
-    role: 'agent',
-    profileImage: 'https://randomuser.me/api/portraits/women/44.jpg',
-    bio: 'Professional real estate agent with 10+ years experience',
-    location: 'Oran',
-    wilaya: 'Oran',
-    createdAt: new Date('2023-06-20'),
-  },
-];
+const mapDatabaseUserToUser = (dbUser: any): User => ({
+  id: dbUser.id,
+  name: dbUser.name || '',
+  email: dbUser.email || '',
+  phone: dbUser.phone || '',
+  role: dbUser.role || 'buyer',
+  profileImage: dbUser.profileImage || '',
+  bio: dbUser.bio || '',
+  location: dbUser.location || '',
+  wilaya: dbUser.wilaya || '',
+  createdAt: dbUser.created_at ? new Date(dbUser.created_at) : new Date(),
+});
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
@@ -51,89 +46,234 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (email: string, password: string) => {
     try {
       set({ isLoading: true, authError: null });
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const user = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-      
-      if (!user) {
-        set({ authError: 'Invalid email or password. Try: karim@example.com', isLoading: false });
+
+      if (!email || !password) {
+        set({
+          authError: 'Please fill in all required fields.',
+          isLoading: false,
+        });
         return false;
       }
-      
-      if (password.length < 4) {
-        set({ authError: 'Password must be at least 4 characters', isLoading: false });
+
+      const { data: authData, error: authError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+      if (authError) {
+        let friendlyMessage = 'Incorrect email or password. Please try again.';
+        if (authError.message.includes('Invalid login credentials')) {
+          friendlyMessage = 'Incorrect email or password. Please try again.';
+        } else if (authError.message.includes('Email not confirmed')) {
+          friendlyMessage = 'Please verify your email before logging in.';
+        }
+        set({ authError: friendlyMessage, isLoading: false });
         return false;
       }
-      
+
+      if (!authData.user) {
+        set({
+          authError: 'Login failed. Please try again.',
+          isLoading: false,
+        });
+        return false;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profileError || !profile) {
+        set({
+          authError: 'Failed to load user profile. Please try again.',
+          isLoading: false,
+        });
+        return false;
+      }
+
+      const user = mapDatabaseUserToUser(profile);
       set({ user, isAuthenticated: true, isLoading: false, authError: null });
       return true;
-    } catch (error) {
-      set({ authError: 'Login failed. Please try again.', isLoading: false });
+    } catch (error: any) {
+      set({
+        authError: 'Login failed. Please try again.',
+        isLoading: false,
+      });
       return false;
     }
   },
 
-  signup: async (name: string, email: string, password: string, role: User['role']) => {
+  signup: async (data) => {
     try {
       set({ isLoading: true, authError: null });
-      
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      
-      const existingUser = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (existingUser) {
-        set({ authError: 'An account with this email already exists', isLoading: false });
+
+      if (!data.email || !data.password || !data.name) {
+        set({
+          authError: 'Please fill in all required fields.',
+          isLoading: false,
+        });
         return false;
       }
-      
-      if (password.length < 6) {
-        set({ authError: 'Password must be at least 6 characters', isLoading: false });
+
+      if (data.password.length < 6) {
+        set({
+          authError: 'Password must be at least 6 characters.',
+          isLoading: false,
+        });
         return false;
       }
-      
-      const newUser: User = {
-        id: Crypto.randomUUID(),
-        name,
-        email,
-        phone: '',
-        role,
-        createdAt: new Date(),
-      };
-      
-      mockUsers.push(newUser);
-      set({ user: newUser, isAuthenticated: true, isLoading: false, authError: null });
+
+      const { data: authData, error: signupError } =
+        await supabase.auth.signUp({
+          email: data.email,
+          password: data.password,
+          options: {
+            data: {
+              name: data.name,
+              phone: data.phone || '',
+              role: data.role,
+              bio: data.bio || '',
+              location: data.location || '',
+              wilaya: data.wilaya || '',
+            },
+          },
+        });
+
+      if (signupError) {
+        let friendlyMessage = 'Signup failed. Please try again.';
+        if (
+          signupError.message.includes('already registered') ||
+          signupError.message.includes('User already exists')
+        ) {
+          friendlyMessage =
+            'An account with this email already exists.';
+        } else if (signupError.message.includes('Password')) {
+          friendlyMessage = 'Password does not meet requirements.';
+        }
+        set({ authError: friendlyMessage, isLoading: false });
+        return false;
+      }
+
+      if (!authData.user) {
+        set({
+          authError: 'Signup failed. Please try again.',
+          isLoading: false,
+        });
+        return false;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profileError || !profile) {
+        set({
+          authError: 'Failed to load user profile. Please try again.',
+          isLoading: false,
+        });
+        return false;
+      }
+
+      const user = mapDatabaseUserToUser(profile);
+      set({ user, isAuthenticated: true, isLoading: false, authError: null });
       return true;
-    } catch (error) {
-      set({ authError: 'Signup failed. Please try again.', isLoading: false });
+    } catch (error: any) {
+      set({
+        authError: 'Signup failed. Please try again.',
+        isLoading: false,
+      });
       return false;
     }
   },
 
   logout: async () => {
-    set({ isLoading: true });
-    await new Promise(resolve => setTimeout(resolve, 300));
-    set({ user: null, isAuthenticated: false, isLoading: false, authError: null });
+    try {
+      set({ isLoading: true });
+      await supabase.auth.signOut();
+      set({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        authError: null,
+      });
+    } catch (error) {
+      set({ isLoading: false });
+    }
   },
 
   initializeAuth: async () => {
     try {
       set({ isLoading: true });
-      await new Promise(resolve => setTimeout(resolve, 800));
-      set({ isLoading: false });
+
+      const { data: sessionData } = await supabase.auth.getSession();
+
+      if (!sessionData.session) {
+        set({ isLoading: false, isAuthenticated: false });
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', sessionData.session.user.id)
+        .single();
+
+      if (profileError || !profile) {
+        set({ isLoading: false, isAuthenticated: false });
+        return;
+      }
+
+      const user = mapDatabaseUserToUser(profile);
+      set({
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+        authError: null,
+      });
     } catch (error) {
-      set({ isLoading: false });
+      set({ isLoading: false, isAuthenticated: false });
     }
   },
 
   updateProfile: async (updates: Partial<User>) => {
     const { user } = get();
     if (!user) return;
-    
-    set({ isLoading: true });
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const updatedUser = { ...user, ...updates };
-    set({ user: updatedUser, isLoading: false });
+
+    try {
+      set({ isLoading: true });
+
+      const updatePayload: any = {};
+      if (updates.name !== undefined) updatePayload.name = updates.name;
+      if (updates.phone !== undefined) updatePayload.phone = updates.phone;
+      if (updates.bio !== undefined) updatePayload.bio = updates.bio;
+      if (updates.location !== undefined)
+        updatePayload.location = updates.location;
+      if (updates.wilaya !== undefined) updatePayload.wilaya = updates.wilaya;
+      if (updates.profileImage !== undefined)
+        updatePayload.profileImage = updates.profileImage;
+
+      const { data: updatedProfile, error: updateError } = await supabase
+        .from('users')
+        .update(updatePayload)
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (updateError || !updatedProfile) {
+        set({ isLoading: false });
+        return;
+      }
+
+      const updatedUser = mapDatabaseUserToUser(updatedProfile);
+      set({ user: updatedUser, isLoading: false });
+    } catch (error) {
+      set({ isLoading: false });
+    }
   },
 
   clearError: () => set({ authError: null }),

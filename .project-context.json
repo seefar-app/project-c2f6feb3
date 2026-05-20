@@ -5,7 +5,11 @@
     "sdkVersion": "~54.0.30",
     "navigation": "tabs",
     "styling": "NativeWind (Tailwind CSS)",
-    "stateManagement": "Zustand + React Query"
+    "stateManagement": "Zustand + React Query",
+    "backend": "Supabase",
+    "supabaseUrl": "https://jlupgripsfplcotphhag.supabase.co",
+    "supabaseProjectRef": "jlupgripsfplcotphhag",
+    "authPattern": "signUp via supabase.auth.signUp({ options: { data: { name, phone, role, profileImage, bio, location, wilaya } } }) — handle_new_user trigger populates users. NEVER call .from('users').insert()"
   },
   "files": {
     "package.json": "json",
@@ -16,8 +20,8 @@
     "global.css": "css",
     "types/index.ts": "ts",
     "constants/Colors.ts": "ts",
-    "store/useAuthStore.ts": "ts",
-    "store/useStore.ts": "ts",
+    "store/useAuthStore.ts": "rewritten to use Supabase (real queries replacing mock data)",
+    "store/useStore.ts": "rewritten to use Supabase (real queries replacing mock data)",
     "hooks/useLocation.ts": "tsx",
     "hooks/useColorScheme.ts": "tsx",
     "components/ui/Button.tsx": "tsx",
@@ -40,7 +44,48 @@
     "app/(tabs)/messages.tsx": "tsx",
     "app/(tabs)/profile.tsx": "tsx"
   },
-  "decisions": [],
+  "decisions": [
+    {
+      "text": "Supabase table \"users\": id:uuid, name:text, email:text, phone:text, role:text, profileImage:text, bio:text, location:text, wilaya:text, created_at:timestamptz",
+      "timestamp": "2026-05-20T10:45:41.190Z"
+    },
+    {
+      "text": "Supabase table \"properties\": id:uuid, title:text, description:text, type:text, price:numeric, currency:text, bedrooms:integer, bathrooms:integer, area:numeric, address:text, wilaya:text, commune:text, latitude:numeric, longitude:numeric, images:text[], amenities:text[], status:text, agentId:uuid, isVerified:boolean, views:integer, created_at:timestamptz, updated_at:timestamptz",
+      "timestamp": "2026-05-20T10:45:41.190Z"
+    },
+    {
+      "text": "Supabase table \"agents\": id:uuid, userId:uuid, license:text, verificationStatus:text, rating:numeric, reviewCount:integer, totalListings:integer, bio:text, specializations:text[], responseTime:text, languages:text[], created_at:timestamptz",
+      "timestamp": "2026-05-20T10:45:41.190Z"
+    },
+    {
+      "text": "Supabase table \"favorites\": id:uuid, userId:uuid, propertyId:uuid, created_at:timestamptz",
+      "timestamp": "2026-05-20T10:45:41.190Z"
+    },
+    {
+      "text": "Supabase table \"messages\": id:uuid, conversationId:uuid, senderId:uuid, receiverId:uuid, propertyId:uuid, content:text, read:boolean, timestamp:timestamptz",
+      "timestamp": "2026-05-20T10:45:41.190Z"
+    },
+    {
+      "text": "Supabase table \"conversations\": id:uuid, participants:uuid[], propertyId:uuid, unreadCount:integer, updated_at:timestamptz, created_at:timestamptz",
+      "timestamp": "2026-05-20T10:45:41.190Z"
+    },
+    {
+      "text": "Supabase table \"appointments\": id:uuid, buyerId:uuid, agentId:uuid, propertyId:uuid, scheduledTime:timestamptz, status:text, notes:text, created_at:timestamptz",
+      "timestamp": "2026-05-20T10:45:41.190Z"
+    },
+    {
+      "text": "Supabase table \"reviews\": id:uuid, authorId:uuid, agentId:uuid, rating:integer, comment:text, created_at:timestamptz",
+      "timestamp": "2026-05-20T10:45:41.190Z"
+    },
+    {
+      "text": "Supabase table \"property_categories\": id:uuid, name:text, nameAr:text, nameFr:text, icon:text, type:text, created_at:timestamptz",
+      "timestamp": "2026-05-20T10:45:41.190Z"
+    },
+    {
+      "text": "Storage buckets: property-images(public), user-avatars(public). Path pattern: <bucket>/<userId>/<filename>. Always list+remove old file before upload to avoid accumulation.",
+      "timestamp": "2026-05-20T10:45:41.190Z"
+    }
+  ],
   "knownIssues": [],
   "designTokens": {
     "theme": "Electric Purple",
@@ -67,11 +112,15 @@
     {
       "summary": "Fix this runtime error:\n[container] runtime: ERROR  The action 'REPLACE' with pa... → 4 files written, 9 reasoning rounds",
       "timestamp": "2026-05-20T10:28:16.468Z"
+    },
+    {
+      "summary": "Supabase integration completed: 9 tables, 2 buckets, 2 files rewritten. Project ref: jlupgripsfplcotphhag",
+      "timestamp": "2026-05-20T10:45:41.190Z"
     }
   ],
   "metadata": {
     "createdAt": "2026-05-20T10:21:05.774Z",
-    "lastUpdated": "2026-05-20T10:28:16.469Z",
+    "lastUpdated": "2026-05-20T10:45:41.190Z",
     "projectName": "project-c2f6feb3",
     "platform": "react-native",
     "originalPrompt": "create a real estate app for algerian market ",

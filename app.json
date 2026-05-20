@@ -73,6 +73,10 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "supabaseUrl": "https://jlupgripsfplcotphhag.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpsdXBncmlwc2ZwbGNvdHBoaGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNDkxNjgsImV4cCI6MjA5NDgyNTE2OH0.aJfSh1K7w5jYKjkmSz_zqsR15rbzQRhPTMvbOtyShTs"
     }
   }
 }
