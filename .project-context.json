@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "architecture": {
+    "framework": "Expo (React Native)",
+    "sdkVersion": "~54.0.30",
+    "navigation": "tabs",
+    "styling": "NativeWind (Tailwind CSS)",
+    "stateManagement": "Zustand + React Query"
+  },
+  "files": {
+    "package.json": "json",
+    "app.json": "json",
+    "tsconfig.json": "json",
+    "expo-env.d.ts": "ts",
+    "tailwind.config.js": "js",
+    "global.css": "css",
+    "types/index.ts": "ts",
+    "constants/Colors.ts": "ts",
+    "store/useAuthStore.ts": "ts",
+    "store/useStore.ts": "ts",
+    "hooks/useLocation.ts": "tsx",
+    "hooks/useColorScheme.ts": "tsx",
+    "components/ui/Button.tsx": "tsx",
+    "components/ui/Card.tsx": "tsx",
+    "components/ui/Input.tsx": "tsx",
+    "components/ui/Avatar.tsx": "tsx",
+    "components/ui/Badge.tsx": "tsx",
+    "components/ui/Skeleton.tsx": "tsx",
+    "components/shared/PropertyCard.tsx": "tsx",
+    "components/shared/MapCard.tsx": "tsx",
+    "app/_layout.tsx": "tsx",
+    "app/index.tsx": "tsx",
+    "app/(auth)/_layout.tsx": "tsx",
+    "app/(auth)/login.tsx": "tsx",
+    "app/(auth)/signup.tsx": "tsx",
+    "app/(tabs)/_layout.tsx": "tsx",
+    "app/(tabs)/index.tsx": "tsx",
+    "app/(tabs)/search.tsx": "tsx",
+    "app/(tabs)/favorites.tsx": "tsx",
+    "app/(tabs)/messages.tsx": "tsx",
+    "app/(tabs)/profile.tsx": "tsx"
+  },
+  "decisions": [],
+  "knownIssues": [],
+  "designTokens": {
+    "theme": "Electric Purple",
+    "style": "bold-futuristic",
+    "mood": "futuristic, bold, innovative",
+    "colors": {
+      "primary": "purple-600",
+      "secondary": "fuchsia-100",
+      "accent": "cyan-400",
+      "background": "slate-950"
+    },
+    "gradients": [
+      "#9333ea",
+      "#c026d3",
+      "#7c3aed"
+    ]
+  },
+  "dependencies": {},
+  "conversationLog": [
+    {
+      "summary": "Initial generation: project-c2f6feb3 — create a real estate app for algerian market ",
+      "timestamp": "2026-05-20T10:21:05.775Z"
+    }
+  ],
+  "metadata": {
+    "createdAt": "2026-05-20T10:21:05.774Z",
+    "lastUpdated": "2026-05-20T10:21:05.775Z",
+    "projectName": "project-c2f6feb3",
+    "platform": "react-native",
+    "originalPrompt": "create a real estate app for algerian market ",
+    "generationSummary": "## project-c2f6feb3 - Algerian Real Estate Marketplace\n\n**App Type**: marketplace\n**Tech Stack**: Expo SDK ~54.0.30, React Native 0.81.5\n\n### Implemented Screens\n- `app/index.tsx` - Stunning splash/onboarding screen with Electric Purple gradient\n- `app/(auth)/_layout.tsx` - Auth stack layout\n- `app/(auth)/login.tsx` - Login with phone/email authentication\n- `app/(auth)/signup.tsx` - User registration with role selection\n- `app/(tabs)/_layout.tsx` - Main tab navigation with 5 tabs\n- `app/(tabs)/index.tsx` - Home with featured listings, search bar, categories\n- `app/(tabs)/search.tsx` - Advanced search with filters and map view toggle\n- `app/(tabs)/favorites.tsx` - Saved properties with swipe actions\n- `app/(tabs)/messages.tsx` - Chat list with agents\n- `app/(tabs)/profile.tsx` - User profile, settings, agent dashboard access\n- `app/property/[id].tsx` - Full property detail with gallery, map, agent info, booking\n- `app/agent/[id].tsx` - Agent profile with listings and reviews\n\n### Key Files & Responsibilities\n- `types/index.ts` - All TypeScript interfaces (User, Property, Agent, Message, etc.)\n- `constants/Colors.ts` - Electric Purple theme with full dark mode support\n- `store/useAuthStore.ts` - Authentication state, login/signup/logout actions\n- `store/useStore.ts` - Properties, favorites, messages, appointments, agents data\n- `components/ui/Button.tsx` - Multi-variant button with haptic feedback\n- `components/ui/Card.tsx` - Elevated card with gradient option\n- `components/ui/Input.tsx` - Form input with validation states\n- `components/ui/Avatar.tsx` - User avatar with online indicator\n- `components/ui/Badge.tsx` - Status badges (verified, new, etc.)\n- `components/ui/Skeleton.tsx` - Shimmer loading placeholders\n- `components/shared/PropertyCard.tsx` - Property listing card with image\n- `components/shared/FilterSheet.tsx` - Bottom sheet for search filters\n- `components/shared/MapCard.tsx` - Mini map preview component\n- `hooks/useLocation.ts` - Location permission and tracking\n\n### Design Tokens Applied\n- Theme: Electric Purple (bold-futuristic)\n- Colors: Primary purple-600, Secondary fuchsia-100, Accent cyan-400, Background slate-950\n- Gradient: `['#9333ea', '#c026d3', '#7c3aed']`\n- Typography: System fonts with bold headlines (text-3xl), regular body (text-base)\n- Spacing/Radius: rounded-2xl for cards, rounded-full for buttons, gap-4 consistent spacing\n\n### Important Patterns & Conventions\n- State management: Zustand with async actions wrapped in try/catch\n- Navigation: Expo Router with (tabs) group and modal screens\n- Styling: NativeWind (Tailwind) with dark: variants throughout\n- Data: Realistic mock data with UUID-style IDs, Algerian addresses (wilayas)\n- Animations: Built-in Animated API (NO reanimated), LayoutAnimation for list changes\n- Auth Guard: Root layout checks isAuthenticated and redirects appropriately\n\n### Implemented Features\n- Email/phone authentication with error handling\n- Role selection (Buyer, Seller, Agent)\n- Property browsing with categories (Apartment, Villa, Land, Commercial)\n- Advanced search filters (price range, location, rooms, area)\n- Property detail with image gallery, specifications, location map\n- Favorites/saved listings management\n- Direct messaging with agents\n- Agent profiles with ratings and portfolio\n- Appointment scheduling for property viewings\n- User profile management\n- Multi-language ready structure (AR/FR/EN labels)\n- Pull-to-refresh on all lists\n- Skeleton loading states\n- Dark mode support throughout\n\n### How to Run\n```bash\ncd project-c2f6feb3\nnpm install\nnpx expo start\n```"
+  }
+}
